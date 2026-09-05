@@ -15,6 +15,11 @@ Run:
 
 Chunking is controlled via the CHUNK_SIZE / CHUNK_OVERLAP environment
 variables (see .env), not command-line flags.
+
+The graph schema (node types, relationship types, allowed patterns) is not
+hardcoded here: it's loaded from the ontology.ttl file next to this script,
+a plain OWL/RDFS ontology in Turtle syntax. Edit that file to change what
+the extractor is allowed to find.
 """
 
 from __future__ import annotations
@@ -28,6 +33,7 @@ from pathlib import Path
 
 import neo4j
 from dotenv import load_dotenv
+from rdflib import OWL, RDF, RDFS, Graph as RdfGraph
 
 from neo4j_graphrag.components.text_splitters.fixed_size_splitter import (
     FixedSizeSplitter,
@@ -43,6 +49,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger("graph_rag_pipeline")
 
 DATA_DIR = Path(__file__).parent / "data" / "docs"
+ONTOLOGY_PATH = Path(__file__).parent / "ontology.ttl"
 VECTOR_INDEX_NAME = "chunk_embeddings"
 CHUNK_NODE_LABEL = "Chunk"
 CHUNK_EMBEDDING_PROPERTY = "embedding"
@@ -114,28 +121,31 @@ def ensure_sample_documents() -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
-# Phase 3: graph schema (entities, relations, allowed patterns)
+# Phase 3: graph schema (entities, relations, allowed patterns), loaded from
+# an OWL/RDFS ontology in Turtle syntax
 # ---------------------------------------------------------------------------
-def build_graph_schema() -> dict:
+def load_graph_schema(ontology_path: Path) -> dict:
+    rdf = RdfGraph()
+    rdf.parse(ontology_path, format="turtle")
+
+    def local_name(uri) -> str:
+        return str(uri).rsplit("#", 1)[-1].rsplit("/", 1)[-1]
+
+    node_types = sorted(local_name(s) for s in rdf.subjects(RDF.type, OWL.Class))
+    relationship_types = sorted(
+        local_name(s) for s in rdf.subjects(RDF.type, OWL.ObjectProperty)
+    )
+    patterns = [
+        (local_name(domain), local_name(prop), local_name(range_))
+        for prop in rdf.subjects(RDF.type, OWL.ObjectProperty)
+        for domain in rdf.objects(prop, RDFS.domain)
+        for range_ in rdf.objects(prop, RDFS.range)
+    ]
+
     return {
-        "node_types": ["Organization", "Person", "Team", "Product", "Technology"],
-        "relationship_types": [
-            "FOUNDED",
-            "WORKS_AT",
-            "MEMBER_OF",
-            "PART_OF",
-            "DEVELOPS",
-            "USES",
-        ],
-        "patterns": [
-            ("Person", "FOUNDED", "Organization"),
-            ("Person", "WORKS_AT", "Organization"),
-            ("Person", "MEMBER_OF", "Team"),
-            ("Team", "PART_OF", "Organization"),
-            ("Organization", "DEVELOPS", "Product"),
-            ("Team", "DEVELOPS", "Product"),
-            ("Product", "USES", "Technology"),
-        ],
+        "node_types": node_types,
+        "relationship_types": relationship_types,
+        "patterns": patterns,
     }
 
 
@@ -272,7 +282,7 @@ async def main() -> None:
 
         if not args.skip_build:
             document_paths = ensure_sample_documents()
-            schema = build_graph_schema()
+            schema = load_graph_schema(ONTOLOGY_PATH)
             await build_knowledge_graph(
                 driver,
                 llm,

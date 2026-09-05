@@ -147,6 +147,8 @@ This runs all phases in order: loads the sample markdown documents in `data/docs
 
 Retrieval uses `VectorCypherRetriever`, not the plain `VectorRetriever`: after the vector index finds the most similar chunks, a Cypher `retrieval_query` walks `(entity)-[:FROM_CHUNK]->(chunk)` to the entities extracted from each matched chunk, then one hop further to their neighbors in the graph. So the LLM gets both the chunk text and the surrounding entity graph (people, teams, products, technologies), not just raw chunk text.
 
+The graph schema itself — what node types and relationship types the extractor is allowed to find, and which `(source, relationship, target)` patterns are valid — is not hardcoded in the script. It's loaded from `ontology.ttl`, a plain OWL/RDFS ontology in Turtle syntax: `owl:Class` declarations become node types, and `owl:ObjectProperty` declarations become relationship types, with each property's `rdfs:domain`/`rdfs:range` becoming an allowed pattern (a property with multiple domains, like `DEVELOPS`, produces one pattern per domain). To extend the schema — say, add a new entity type or relationship — edit `ontology.ttl` and re-run with `--reset`; no code changes needed.
+
 Useful flags:
 
 ```bash
@@ -182,5 +184,6 @@ A full build over the 3 sample documents takes a few minutes on CPU-only local m
 ## Project layout
 
 - `data/docs/` — sample unstructured markdown documents used as the source corpus.
+- `ontology.ttl` — the graph schema (node types, relationship types, allowed patterns), as an OWL/RDFS ontology in Turtle syntax.
 - `graph_rag_pipeline.py` — the KG builder + retriever pipeline (single script, phased).
 - `requirements.txt` — Python dependencies.

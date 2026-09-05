@@ -1,0 +1,16 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex: <http://aurora-robotics.example.org/ontology#> .
+
+ex:Organization a owl:Class .
+ex:Person a owl:Class .
+ex:Team a owl:Class .
+ex:Product a owl:Class .
+ex:Technology a owl:Class .
+
+ex:FOUNDED a owl:ObjectProperty ; rdfs:domain ex:Person ; rdfs:range ex:Organization .
+ex:WORKS_AT a owl:ObjectProperty ; rdfs:domain ex:Person ; rdfs:range ex:Organization .
+ex:MEMBER_OF a owl:ObjectProperty ; rdfs:domain ex:Person ; rdfs:range ex:Team .
+ex:PART_OF a owl:ObjectProperty ; rdfs:domain ex:Team ; rdfs:range ex:Organization .
+ex:DEVELOPS a owl:ObjectProperty ; rdfs:domain ex:Organization, ex:Team ; rdfs:range ex:Product .
+ex:USES a owl:ObjectProperty ; rdfs:domain ex:Product ; rdfs:range ex:Technology .
