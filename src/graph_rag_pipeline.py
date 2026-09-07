@@ -107,6 +107,19 @@ def load_configuration() -> AppConfig:
     )
 
 
+def build_llm_and_embedder(config: AppConfig) -> tuple[OllamaLLM, OllamaEmbeddings]:
+    llm = OllamaLLM(
+        model_name=config.ollama_llm_model,
+        model_params={"options": {"temperature": 0}},
+        host=config.ollama_base_url,
+    )
+    embedder = OllamaEmbeddings(
+        model=config.ollama_embedding_model,
+        host=config.ollama_base_url,
+    )
+    return llm, embedder
+
+
 # ---------------------------------------------------------------------------
 # Phase 2: sample unstructured documents (markdown)
 # ---------------------------------------------------------------------------
@@ -261,16 +274,7 @@ async def main() -> None:
     args = parser.parse_args()
 
     config = load_configuration()
-
-    llm = OllamaLLM(
-        model_name=config.ollama_llm_model,
-        model_params={"options": {"temperature": 0}},
-        host=config.ollama_base_url,
-    )
-    embedder = OllamaEmbeddings(
-        model=config.ollama_embedding_model,
-        host=config.ollama_base_url,
-    )
+    llm, embedder = build_llm_and_embedder(config)
 
     with neo4j.GraphDatabase.driver(
         config.neo4j_uri, auth=(config.neo4j_username, config.neo4j_password)

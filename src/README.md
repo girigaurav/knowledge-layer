@@ -161,6 +161,45 @@ Chunking is controlled via `CHUNK_SIZE`/`CHUNK_OVERLAP` in `.env` (see above) �
 
 A full build over the 3 sample documents takes a few minutes on CPU-only local models — `--skip-build` is useful for iterating on retrieval/prompting without re-running extraction.
 
+## Alternate entry point: `kg_pipeline_cli.py`
+
+`kg_pipeline_cli.py` is a parallel, subcommand-style entry point over the same pipeline logic (it imports directly from `graph_rag_pipeline.py` rather than duplicating it), inspired by the CLI shape of the sibling `Unstructured-Data-to-graph` project's `src/main.py`. Where `graph_rag_pipeline.py` is one flag-driven script that builds and queries in a single run, this one splits those into discrete commands:
+
+```bash
+python kg_pipeline_cli.py ingest data/docs             # build the graph from a docs directory
+python kg_pipeline_cli.py ingest data/docs --reset     # wipe the graph first
+python kg_pipeline_cli.py chat                          # interactive Q&A REPL
+```
+
+`ingest` prints a diff report after building — documents/entities/relationships added or removed compared to the graph's state right before the run (including what a `--reset` wiped). It only tracks additions/removals, not in-place content changes to an existing document, since that would need a persisted content hash per document.
+
+`chat` is an interactive REPL (`exit`/`quit` to leave) instead of a fixed batch of demo questions, and prints the source entities and graph relationships behind each answer as citations. It does not stream tokens — `GraphRAG.search` is a single blocking call.
+
+Unlike the sibling project, this script skips the candidate-graph/ontology-approval/publish-gating workflow entirely: `ingest` writes straight to the graph, exactly like `graph_rag_pipeline.py` does.
+
+### Trying it out
+
+1. **Build a clean baseline** from the original sample documents:
+   ```bash
+   python kg_pipeline_cli.py ingest data/docs --reset
+   ```
+   The diff report should show `data/docs/*.md` added and nothing removed (or, on a fresh Neo4j instance, everything added).
+
+2. **Add new data without disturbing what's already in the graph** — put one or more new markdown files in a separate directory (not `data/docs/`, so you don't touch the originals) and `ingest` that directory **without** `--reset`:
+   ```bash
+   mkdir -p data/docs_extra
+   # write a new .md file into data/docs_extra/ introducing entities/relationships
+   # not already present elsewhere in the corpus, e.g. a new team, person, or product
+   python kg_pipeline_cli.py ingest data/docs_extra
+   ```
+   Because `ingest` only ever reads the directory you pass it, this merges the new content into the existing graph instead of replacing it. The diff report should show only additions (the new document, its new entities, its new relationships) with `0` removed. Confirm the original data survived by checking directly in Neo4j Browser (see below) that entities from `data/docs/` are still there.
+
+3. **Ask a question that spans both the original and the newly added data**:
+   ```bash
+   python kg_pipeline_cli.py chat
+   ```
+   At the `You:` prompt, ask something that requires connecting an original entity to a newly added one (e.g. relating a new product to an existing one), confirm the answer plus its citations block look right, then type `exit`.
+
 ## Viewing the graph in Neo4j Browser
 
 1. Open `http://localhost:7474` in a browser and log in (`neo4j` / your password from the `.env`).
@@ -186,4 +225,5 @@ A full build over the 3 sample documents takes a few minutes on CPU-only local m
 - `data/docs/` — sample unstructured markdown documents used as the source corpus.
 - `ontology.ttl` — the graph schema (node types, relationship types, allowed patterns), as an OWL/RDFS ontology in Turtle syntax.
 - `graph_rag_pipeline.py` — the KG builder + retriever pipeline (single script, phased).
+- `kg_pipeline_cli.py` — alternate `ingest`/`chat` subcommand entry point over the same pipeline logic (see above).
 - `requirements.txt` — Python dependencies.
