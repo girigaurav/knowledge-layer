@@ -52,6 +52,8 @@ podman exec neo4j-kg cypher-shell -u neo4j -p my_password "RETURN 1;"
 podman run -d \
   --name ollama \
   -p 11434:11434 \
+#   Serialize requests to Ollama — set OLLAMA_NUM_PARALLEL=1 (or otherwise ensure chunks are extracted one at a time, not concurrently). This removes cross-request batching variance, which is likely the single biggest lever here.
+#   -e OLLAMA_NUM_PARALLEL=1 \ 
   -v ollama_data:/root/.ollama \
   docker.io/ollama/ollama:latest
 ```
@@ -115,11 +117,13 @@ Both containers keep their data in named volumes, so stopping them is safe — n
 
 ```bash
 podman stop neo4j-kg ollama
+podman machine stop
 ```
 
 **Resume both at the start of a session:**
 
 ```bash
+podman machine start
 podman start neo4j-kg ollama
 ```
 
@@ -205,6 +209,10 @@ Unlike the sibling project, this script skips the candidate-graph/ontology-appro
 1. Open `http://localhost:7474` in a browser and log in (`neo4j` / your password from the `.env`).
 2. Run a Cypher query to see everything the pipeline built:
    ```cypher
+   // Delete existing graph
+   MATCH (n) DETACH DELETE n
+
+   // Default query
    MATCH (n) RETURN n LIMIT 300
    ```
 3. A few more targeted views:

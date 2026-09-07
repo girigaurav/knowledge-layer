@@ -110,7 +110,7 @@ def load_configuration() -> AppConfig:
 def build_llm_and_embedder(config: AppConfig) -> tuple[OllamaLLM, OllamaEmbeddings]:
     llm = OllamaLLM(
         model_name=config.ollama_llm_model,
-        model_params={"options": {"temperature": 0}},
+        model_params={"options": {"temperature": 0, "seed": 42}}, # Add seed alongside temperature: 0 in model_params={"options": {"temperature": 0, "seed": 42}} — cheap, and some backends only fully lock decoding down when both are set.
         host=config.ollama_base_url,
     )
     embedder = OllamaEmbeddings(

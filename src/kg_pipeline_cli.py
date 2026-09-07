@@ -48,7 +48,7 @@ from graph_rag_pipeline import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("kg_pipeline_cli")
 
-_DIFF_LIST_LIMIT = 20
+_DIFF_LIST_LIMIT = 100
 
 
 # ---------------------------------------------------------------------------
