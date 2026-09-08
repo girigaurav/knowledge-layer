@@ -30,8 +30,13 @@
 12. API Management: should the knowledge layer not sit behind APIM as it potentially can be reused by multiple agents of the same/diverse domains?
 ![alt text](image-1.png)
 
+## Cloud
+1. Neo4j on AKS Clusters: Neo4j is a stateful service. How do we intend to handle state w.r.t. to node failures, PVC provisioning, cluster backups, replication & failover. also how do we handle version upgrades for neo4j. 
+2. Licensing: How will licensing of Neo4j on AKS clusters work.
+
 ## Data Governance and Security
 1. Permissions/Security/Governance: Individual data sources (confluence, Jira) permissions vs How will low level data permissions be mapped and ACLS be maintained in the Data LakeHouse?
 2. Freshness of Data: How live the data will be in in databricks, what schedule?
 3. Sensitive Data: How will PII and other data controls be managed of data stored in databricks? Also classification of sensitivity of data.
 4. Source documents/citations: should they be original pages from confluence/jira links or raw documents stored in databricks bronze layer after ingestion?
+5. Nodes and Relationships: How do we maintain ACLs at the level of each node and relationship? Will it not be overwhelming for graph traversal?
