@@ -14,6 +14,7 @@
 2. Versioning : How will we maintain versioned Knowledge Graph for Retrieval Purposes?
 3. Review: Does knowledge Graph need a review, OR a review of Ontology(Schema and constraints) is enough? as there will be many Entities and Relationships, and it is impossible to manually review the every change onto a Knowledge Graph.
 4. Tests/Evals: How can we be sure that Knowledge Graph being changed/ adhers to the Ontology, and extracted relationships/entities/properties and relationship between lexical and domain graph is correct? 
+5. Determinism: How can we ascertain that every run of pipeline extracts same entity, relationships and constraints.
 
 ## Technology
 1. Data Platform: Databricks on Azure -VS- MS Azure Fabric ?
